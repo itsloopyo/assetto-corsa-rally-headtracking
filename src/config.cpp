@@ -27,14 +27,23 @@ constexpr char kDefaultIniText[] =
     "; Assetto Corsa Rally Head Tracking - configuration\n"
     "; Edit values, restart the game to apply.\n"
     ";\n"
-    "; Controls: Home / Ctrl+Shift+T   recenter\n"
-    ";           End  / Ctrl+Shift+Y   toggle tracking\n"
+    "; Controls: Home / Ctrl+Shift+T   recenter        (remappable, see [Hotkeys])\n"
+    ";           End  / Ctrl+Shift+Y   toggle tracking (remappable, see [Hotkeys])\n"
     ";           PgUp / Ctrl+Shift+G   cycle tracking mode (rotation and position\n"
     ";                                 / rotation only / position only)\n\n"
     "[Network]\n"
     "UdpPort=4242\n\n"
     "[General]\n"
     "EnableOnStartup=1\n\n"
+    "[Hotkeys]\n"
+    "; Windows virtual-key codes, in hex. Each action has a nav-cluster key and a\n"
+    "; Ctrl+Shift+<key> chord, and both fire it - remap either or both.\n"
+    "; Common codes: Home 0x24, End 0x23, Insert 0x2D, Delete 0x2E, PgUp 0x21,\n"
+    "; PgDn 0x22, F1-F12 0x70-0x7B, A-Z 0x41-0x5A, numpad 0-9 0x60-0x69.\n"
+    "RecenterKey=0x24\n"
+    "ToggleKey=0x23\n"
+    "ChordRecenterKey=0x54\n"
+    "ChordToggleKey=0x59\n\n"
     "[Rotation]\n"
     "YawSensitivity=1.0\n"
     "PitchSensitivity=1.0\n"
@@ -182,6 +191,17 @@ bool ParseIntStrict(const std::string& text, int& out) {
     return ParseLongStrict(text.c_str(), 10, out);
 }
 
+// Virtual-key codes are published as hex and that is how the shipped INI writes
+// them, but decimal is what a user reading a code off a calculator will type.
+// The base is chosen from the prefix rather than handed to strtol as 0, which
+// would additionally read a leading zero as octal - so "070" would silently
+// mean 56 rather than the F key the user was aiming at.
+bool ParseKeyStrict(const std::string& text, int& out) {
+    if (text.empty()) return false;
+    const bool hex = text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X');
+    return ParseLongStrict(text.c_str(), hex ? 16 : 10, out);
+}
+
 void ReadBoolSetting(const cameraunlock::IniReader& ini, const char* section, const char* key,
                      bool& out) {
     std::string raw;
@@ -235,6 +255,25 @@ float ReadSmoothing(const cameraunlock::IniReader& ini, const char* section,
                             [](float v) { return SanitizeSmoothing(v); });
 }
 
+// A key the mod refused leaves the action on its previous binding rather than
+// on nothing, so a mistyped code costs the user that one hotkey and says so.
+int ReadKeySetting(const cameraunlock::IniReader& ini, const char* key, int current) {
+    std::string text;
+    if (!ReadRaw(ini, "Hotkeys", key, text)) return current;
+
+    int parsed = 0;
+    if (!ParseKeyStrict(text, parsed)) {
+        LogUnparsed(key, text, "a virtual-key code (0x24, or 36)");
+        return current;
+    }
+    if (!IsBindableVirtualKey(parsed)) {
+        Log::Line("[config] %s=%s is not a key that can be bound; keeping 0x%02X", key,
+                  text.c_str(), current);
+        return current;
+    }
+    return parsed;
+}
+
 float ReadLimit(const cameraunlock::IniReader& ini, const char* key, float current) {
     return ReadFloatSetting(ini, "Position", key, current,
                             [current](float v) { return SanitizePositionLimit(v, current); });
@@ -268,6 +307,11 @@ void LoadConfig(const std::string& exe_dir, Config& out) {
     }
 
     ReadBoolSetting(ini, "General", "EnableOnStartup", out.enable_on_startup);
+
+    out.recenter_key       = ReadKeySetting(ini, "RecenterKey",      out.recenter_key);
+    out.toggle_key         = ReadKeySetting(ini, "ToggleKey",        out.toggle_key);
+    out.chord_recenter_key = ReadKeySetting(ini, "ChordRecenterKey", out.chord_recenter_key);
+    out.chord_toggle_key   = ReadKeySetting(ini, "ChordToggleKey",   out.chord_toggle_key);
 
     out.yaw_sensitivity    = ReadSensitivity(ini, "Rotation", "YawSensitivity",   out.yaw_sensitivity);
     out.pitch_sensitivity  = ReadSensitivity(ini, "Rotation", "PitchSensitivity", out.pitch_sensitivity);

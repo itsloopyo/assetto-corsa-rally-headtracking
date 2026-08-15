@@ -81,6 +81,23 @@ void NearClipIsEitherLeaveAloneOrAUsableDistance() {
     Check(g_failures, SanitizeNearClip(1.0f) == 1.0f, "the shipped 1 cm near clip is untouched");
 }
 
+void HotkeyCodesThatCannotFireAreRefused() {
+    using acr_ht::IsBindableVirtualKey;
+    Check(g_failures, !IsBindableVirtualKey(0), "0 is not a key");
+    Check(g_failures, !IsBindableVirtualKey(0xFF), "0xFF is not a key");
+    Check(g_failures, !IsBindableVirtualKey(-1), "a negative code is not a key");
+    Check(g_failures, !IsBindableVirtualKey(0x100), "a code past the range is not a key");
+    // Bound to a modifier, a nav binding is suppressed by the chord guard and a
+    // chord binding fires the moment the chord itself is held.
+    Check(g_failures, !IsBindableVirtualKey(0x10), "Shift cannot be bound");
+    Check(g_failures, !IsBindableVirtualKey(0x11), "Control cannot be bound");
+    Check(g_failures, !IsBindableVirtualKey(0x12), "Alt cannot be bound");
+    Check(g_failures, !IsBindableVirtualKey(0xA2), "left Control cannot be bound");
+    Check(g_failures, IsBindableVirtualKey(0x24), "Home can be bound");
+    Check(g_failures, IsBindableVirtualKey(0x59), "a chord letter can be bound");
+    Check(g_failures, IsBindableVirtualKey(0x7B), "F12 can be bound");
+}
+
 }  // namespace
 
 int RunConfigSanitizeTests() {
@@ -90,5 +107,6 @@ int RunConfigSanitizeTests() {
     SensitivityKeepsItsSignButNotItsInfinities();
     PositionLimitsCannotInvertTheClamp();
     NearClipIsEitherLeaveAloneOrAUsableDistance();
+    HotkeyCodesThatCannotFireAreRefused();
     return g_failures;
 }

@@ -68,4 +68,18 @@ inline float SanitizePositionLimit(float v, float fallback) {
     return ClampRange(SanitizeFinite(v, fallback), 0.0f, kMaxPositionLimit);
 }
 
+// Hotkeys are read as Windows virtual-key codes. Codes run 0x01-0xFE; 0 and
+// 0xFF are not keys at all, so GetAsyncKeyState on either polls nothing and the
+// binding silently never fires.
+//
+// The modifiers are refused too. Ctrl, Shift and Alt are what the chord guard
+// tests, so an action bound to one either never fires - a nav binding is
+// suppressed while the chord is held - or fires on every chord press.
+inline bool IsBindableVirtualKey(int vk) {
+    if (vk < 0x01 || vk > 0xFE) return false;
+    if (vk >= 0x10 && vk <= 0x12) return false;  // Shift, Control, Alt
+    if (vk >= 0xA0 && vk <= 0xA5) return false;  // their left/right halves
+    return true;
+}
+
 }  // namespace acr_ht

@@ -11,6 +11,14 @@ struct Config {
     std::uint16_t udp_port = 4242;
     bool enable_on_startup = true;
 
+    // Windows virtual-key codes. Each action has a nav-cluster key and a
+    // Ctrl+Shift+<key> chord, and both fire it - the chord exists for keyboards
+    // with no nav cluster. Defaults: Home, End, and the T/Y chord letters.
+    int recenter_key = 0x24;
+    int toggle_key = 0x23;
+    int chord_recenter_key = 0x54;
+    int chord_toggle_key = 0x59;
+
     float yaw_sensitivity = 1.0f;
     float pitch_sensitivity = 1.0f;
     float roll_sensitivity = 1.0f;

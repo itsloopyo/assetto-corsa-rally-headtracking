@@ -90,6 +90,10 @@ Config Poisoned() {
     Config c;
     c.udp_port = 5555;
     c.enable_on_startup = false;
+    c.recenter_key = 0x70;
+    c.toggle_key = 0x71;
+    c.chord_recenter_key = 0x72;
+    c.chord_toggle_key = 0x73;
     c.yaw_sensitivity = 2.5f;
     c.pitch_sensitivity = 2.6f;
     c.roll_sensitivity = 2.7f;
@@ -129,6 +133,16 @@ void CheckMatchesDefaults(const Config& loaded, const char* label) {
          static_cast<double>(loaded.udp_port), static_cast<double>(defaults.udp_port));
     same(loaded.enable_on_startup == defaults.enable_on_startup, "enable_on_startup",
          static_cast<double>(loaded.enable_on_startup), static_cast<double>(defaults.enable_on_startup));
+    same(loaded.recenter_key == defaults.recenter_key, "recenter_key",
+         static_cast<double>(loaded.recenter_key), static_cast<double>(defaults.recenter_key));
+    same(loaded.toggle_key == defaults.toggle_key, "toggle_key",
+         static_cast<double>(loaded.toggle_key), static_cast<double>(defaults.toggle_key));
+    same(loaded.chord_recenter_key == defaults.chord_recenter_key, "chord_recenter_key",
+         static_cast<double>(loaded.chord_recenter_key),
+         static_cast<double>(defaults.chord_recenter_key));
+    same(loaded.chord_toggle_key == defaults.chord_toggle_key, "chord_toggle_key",
+         static_cast<double>(loaded.chord_toggle_key),
+         static_cast<double>(defaults.chord_toggle_key));
     same(Near(loaded.yaw_sensitivity, defaults.yaw_sensitivity, 1e-6), "yaw_sensitivity",
          static_cast<double>(loaded.yaw_sensitivity), static_cast<double>(defaults.yaw_sensitivity));
     same(Near(loaded.pitch_sensitivity, defaults.pitch_sensitivity, 1e-6), "pitch_sensitivity",
@@ -402,6 +416,57 @@ void HashIsNotAComment() {
             });
 }
 
+// The nav cluster is prime real estate on a sim rig - a wheel button box or the
+// game's own binds may already be there - so both halves of recenter and toggle
+// are remappable. A code the mod cannot bind has to leave the action on its
+// previous key rather than on nothing.
+void HotkeysAreRemappable() {
+    WithIni("[Hotkeys]\nRecenterKey=0x2D\nChordRecenterKey=0x4B\n", [](Config&) {},
+            [](const Config& c) {
+                Check(g_failures, c.recenter_key == 0x2D && c.chord_recenter_key == 0x4B,
+                      "a hex virtual-key code rebinds both halves of an action");
+            });
+
+    WithIni("[Hotkeys]\nToggleKey=46\n", [](Config&) {},
+            [](const Config& c) {
+                Check(g_failures, c.toggle_key == 46,
+                      "a decimal virtual-key code is accepted alongside hex");
+            });
+
+    // strtol's base 0 would read this as octal 56 rather than the F key.
+    WithIni("[Hotkeys]\nToggleKey=070\n", [](Config& c) { c.toggle_key = 0x23; },
+            [](const Config& c) {
+                Check(g_failures, c.toggle_key == 70,
+                      "a leading zero is read as decimal, not octal");
+            });
+
+    WithIni("[Hotkeys]\nRecenterKey=0x24 ; Home\n", [](Config& c) { c.recenter_key = 0x70; },
+            [](const Config& c) {
+                Check(g_failures, c.recenter_key == 0x24,
+                      "a key code with a trailing comment is still read");
+            });
+
+    // Ctrl is what the chord guard tests, so an action bound to it would either
+    // never fire or fire on every chord press.
+    WithIni("[Hotkeys]\nToggleKey=0x11\n", [](Config& c) { c.toggle_key = 0x23; },
+            [](const Config& c) {
+                Check(g_failures, c.toggle_key == 0x23,
+                      "a modifier key is refused and the previous binding stands");
+            });
+
+    WithIni("[Hotkeys]\nRecenterKey=0\n", [](Config& c) { c.recenter_key = 0x24; },
+            [](const Config& c) {
+                Check(g_failures, c.recenter_key == 0x24,
+                      "zero is not a key, and leaves the action bound where it was");
+            });
+
+    WithIni("[Hotkeys]\nChordToggleKey=Y\n", [](Config& c) { c.chord_toggle_key = 0x59; },
+            [](const Config& c) {
+                Check(g_failures, c.chord_toggle_key == 0x59,
+                      "a key name is refused rather than read as a code");
+            });
+}
+
 }  // namespace
 
 int RunConfigTests() {
@@ -415,5 +480,6 @@ int RunConfigTests() {
     OverflowingIntegersAreRefusedNotSaturated();
     HashIsNotAComment();
     ZeroIsAValueNotAnUnsetMarker();
+    HotkeysAreRemappable();
     return g_failures;
 }

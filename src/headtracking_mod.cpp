@@ -4,6 +4,7 @@
 #include <psapi.h>
 
 #include <atomic>
+#include <cstdio>
 #include <string>
 #include <thread>
 
@@ -106,13 +107,45 @@ struct HotkeyBinding {
     void (*action)();
 };
 
-void RegisterHotkeys() {
+// GetKeyNameText wants the scan code in bits 16-23 and the extended-key flag in
+// bit 24. The nav cluster, the arrows and a few others are extended keys, and
+// without that bit they name their numpad twins - a recenter left on Home would
+// report itself in the log as "Num 7", which is the one thing this line exists
+// to get right once the key is the user's choice.
+bool IsExtendedKey(int vk) {
+    switch (vk) {
+        case VK_PRIOR: case VK_NEXT: case VK_END: case VK_HOME:
+        case VK_LEFT: case VK_UP: case VK_RIGHT: case VK_DOWN:
+        case VK_INSERT: case VK_DELETE:
+        case VK_DIVIDE: case VK_NUMLOCK: case VK_SNAPSHOT:
+            return true;
+        default:
+            return false;
+    }
+}
+
+std::string HotkeyName(int vk) {
+    const UINT scan = MapVirtualKeyW(static_cast<UINT>(vk), MAPVK_VK_TO_VSC);
+    if (scan) {
+        LONG lparam = static_cast<LONG>(scan) << 16;
+        if (IsExtendedKey(vk)) lparam |= 1L << 24;
+        char name[64]{};
+        if (GetKeyNameTextA(lparam, name, sizeof(name)) > 0) return name;
+    }
+    // A key this layout has no name for still has to be identifiable, and the
+    // code is what the user typed into the INI.
+    char code[8]{};
+    std::snprintf(code, sizeof(code), "0x%02X", vk);
+    return code;
+}
+
+void RegisterHotkeys(const Config& config) {
     using namespace cameraunlock::input;
 
     const HotkeyBinding bindings[] = {
-        { VK_HOME,  'T', Recenter },
-        { VK_END,   'Y', ToggleTracking },
-        { VK_PRIOR, 'G', CycleTrackingMode },
+        { config.recenter_key, config.chord_recenter_key, Recenter },
+        { config.toggle_key,   config.chord_toggle_key,   ToggleTracking },
+        { VK_PRIOR,            'G',                       CycleTrackingMode },
     };
 
     for (const HotkeyBinding& binding : bindings) {
@@ -254,10 +287,14 @@ void Bootstrap() {
         return;
     }
 
-    RegisterHotkeys();
+    RegisterHotkeys(g_config);
     g_active.store(true);
-    Log::Line("[boot] ready. Home/Ctrl+Shift+T recenter, End/Ctrl+Shift+Y toggle tracking, "
-              "PgUp/Ctrl+Shift+G cycle tracking mode.");
+    Log::Line("[boot] ready. %s/Ctrl+Shift+%s recenter, %s/Ctrl+Shift+%s toggle tracking, "
+              "PgUp/Ctrl+Shift+G cycle tracking mode.",
+              HotkeyName(g_config.recenter_key).c_str(),
+              HotkeyName(g_config.chord_recenter_key).c_str(),
+              HotkeyName(g_config.toggle_key).c_str(),
+              HotkeyName(g_config.chord_toggle_key).c_str());
 }
 
 }  // namespace
