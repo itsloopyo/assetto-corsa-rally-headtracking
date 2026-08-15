@@ -143,9 +143,9 @@ void RegisterHotkeys(const Config& config) {
     using namespace cameraunlock::input;
 
     const HotkeyBinding bindings[] = {
-        { config.recenter_key, config.chord_recenter_key, Recenter },
-        { config.toggle_key,   config.chord_toggle_key,   ToggleTracking },
-        { VK_PRIOR,            'G',                       CycleTrackingMode },
+        { config.recenter_key,   config.chord_recenter_key,   Recenter },
+        { config.toggle_key,     config.chord_toggle_key,     ToggleTracking },
+        { config.cycle_mode_key, config.chord_cycle_mode_key, CycleTrackingMode },
     };
 
     for (const HotkeyBinding& binding : bindings) {
@@ -290,11 +290,13 @@ void Bootstrap() {
     RegisterHotkeys(g_config);
     g_active.store(true);
     Log::Line("[boot] ready. %s/Ctrl+Shift+%s recenter, %s/Ctrl+Shift+%s toggle tracking, "
-              "PgUp/Ctrl+Shift+G cycle tracking mode.",
+              "%s/Ctrl+Shift+%s cycle tracking mode.",
               HotkeyName(g_config.recenter_key).c_str(),
               HotkeyName(g_config.chord_recenter_key).c_str(),
               HotkeyName(g_config.toggle_key).c_str(),
-              HotkeyName(g_config.chord_toggle_key).c_str());
+              HotkeyName(g_config.chord_toggle_key).c_str(),
+              HotkeyName(g_config.cycle_mode_key).c_str(),
+              HotkeyName(g_config.chord_cycle_mode_key).c_str());
 }
 
 }  // namespace

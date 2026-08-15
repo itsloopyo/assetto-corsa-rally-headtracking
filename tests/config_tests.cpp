@@ -92,8 +92,10 @@ Config Poisoned() {
     c.enable_on_startup = false;
     c.recenter_key = 0x70;
     c.toggle_key = 0x71;
-    c.chord_recenter_key = 0x72;
-    c.chord_toggle_key = 0x73;
+    c.cycle_mode_key = 0x72;
+    c.chord_recenter_key = 0x73;
+    c.chord_toggle_key = 0x74;
+    c.chord_cycle_mode_key = 0x75;
     c.yaw_sensitivity = 2.5f;
     c.pitch_sensitivity = 2.6f;
     c.roll_sensitivity = 2.7f;
@@ -137,12 +139,17 @@ void CheckMatchesDefaults(const Config& loaded, const char* label) {
          static_cast<double>(loaded.recenter_key), static_cast<double>(defaults.recenter_key));
     same(loaded.toggle_key == defaults.toggle_key, "toggle_key",
          static_cast<double>(loaded.toggle_key), static_cast<double>(defaults.toggle_key));
+    same(loaded.cycle_mode_key == defaults.cycle_mode_key, "cycle_mode_key",
+         static_cast<double>(loaded.cycle_mode_key), static_cast<double>(defaults.cycle_mode_key));
     same(loaded.chord_recenter_key == defaults.chord_recenter_key, "chord_recenter_key",
          static_cast<double>(loaded.chord_recenter_key),
          static_cast<double>(defaults.chord_recenter_key));
     same(loaded.chord_toggle_key == defaults.chord_toggle_key, "chord_toggle_key",
          static_cast<double>(loaded.chord_toggle_key),
          static_cast<double>(defaults.chord_toggle_key));
+    same(loaded.chord_cycle_mode_key == defaults.chord_cycle_mode_key, "chord_cycle_mode_key",
+         static_cast<double>(loaded.chord_cycle_mode_key),
+         static_cast<double>(defaults.chord_cycle_mode_key));
     same(Near(loaded.yaw_sensitivity, defaults.yaw_sensitivity, 1e-6), "yaw_sensitivity",
          static_cast<double>(loaded.yaw_sensitivity), static_cast<double>(defaults.yaw_sensitivity));
     same(Near(loaded.pitch_sensitivity, defaults.pitch_sensitivity, 1e-6), "pitch_sensitivity",
@@ -427,17 +434,32 @@ void HotkeysAreRemappable() {
                       "a hex virtual-key code rebinds both halves of an action");
             });
 
-    WithIni("[Hotkeys]\nToggleKey=46\n", [](Config&) {},
+    WithIni("[Hotkeys]\nCycleModeKey=0x2E\nChordCycleModeKey=0x4A\n", [](Config&) {},
             [](const Config& c) {
-                Check(g_failures, c.toggle_key == 46,
-                      "a decimal virtual-key code is accepted alongside hex");
+                Check(g_failures, c.cycle_mode_key == 0x2E && c.chord_cycle_mode_key == 0x4A,
+                      "the mode cycle is remappable too, so nothing is pinned to PgUp");
             });
 
-    // strtol's base 0 would read this as octal 56 rather than the F key.
-    WithIni("[Hotkeys]\nToggleKey=070\n", [](Config& c) { c.toggle_key = 0x23; },
+    WithIni("[Hotkeys]\nToggleKey=2E\n", [](Config&) {},
             [](const Config& c) {
-                Check(g_failures, c.toggle_key == 70,
-                      "a leading zero is read as decimal, not octal");
+                Check(g_failures, c.toggle_key == 0x2E,
+                      "a code written without the 0x prefix is still read as hex");
+            });
+
+    // Both readings of a bare number land on a real key, so a decimal parse
+    // would bind the F letter key to a user who wrote the hex for F1.
+    WithIni("[Hotkeys]\nToggleKey=70\n", [](Config& c) { c.toggle_key = 0x23; },
+            [](const Config& c) {
+                Check(g_failures, c.toggle_key == 0x70,
+                      "70 is F1, not the decimal 70 that is the F letter key");
+            });
+
+    // Half the key names a user would try are made of hex digits, and every one
+    // of them is a bindable code: "End" is 0xE and "Delete" is 0xDE.
+    WithIni("[Hotkeys]\nToggleKey=End\n", [](Config& c) { c.toggle_key = 0x23; },
+            [](const Config& c) {
+                Check(g_failures, c.toggle_key == 0x23,
+                      "a key name made of hex digits is refused, not read as 0xE");
             });
 
     WithIni("[Hotkeys]\nRecenterKey=0x24 ; Home\n", [](Config& c) { c.recenter_key = 0x70; },

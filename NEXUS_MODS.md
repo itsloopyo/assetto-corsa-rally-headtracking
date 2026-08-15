@@ -114,6 +114,8 @@ The mod recenters itself once, a moment after it first sees tracker data. Sit th
 |---|---|---|
 | `[Network] UdpPort` | `4242` | OpenTrack standard. Must be `1024`-`65535` |
 | `[General] EnableOnStartup` | `1` | |
+| `[Hotkeys] RecenterKey` / `ToggleKey` / `CycleModeKey` | `0x24` / `0x23` / `0x21` | The nav-cluster keys, as Windows virtual key codes in hex |
+| `[Hotkeys] ChordRecenterKey` / `ChordToggleKey` / `ChordCycleModeKey` | `0x54` / `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same three actions |
 | `[Rotation] YawSensitivity` / `PitchSensitivity` / `RollSensitivity` | `1.0` | |
 | `[Rotation] InvertYaw` / `InvertPitch` / `InvertRoll` | `0` | Set whichever axis runs backwards for your tracker |
 | `[Rotation] Smoothing` | `0.0` | `0.0` to `1.0`. A baseline of 0.15 is always applied internally; raise this if your tracker is jittery |
@@ -146,6 +148,8 @@ Two equivalent binding sets. Use whichever your keyboard has.
 4. Back to normal
 
 The chord letters T/Y/G sit in a block in the middle of the keyboard, easy to find by touch. `Ctrl+Shift+<letter>` is avoided by games, so the chords work whether or not your keyboard has a nav cluster.
+
+Both halves of all three actions are remappable through `[Hotkeys]` in `HeadTracking.ini`, which is worth doing if a button box or a wheel plugin already sits on one of them. They are Windows virtual key codes in hex, not key names: `RecenterKey=Insert` is refused, `RecenterKey=0x2D` is the same key, and a bare `24` is read as `0x24`. `Ctrl`, `Shift` and `Alt` cannot be bound, being what the chord is made of. A code the mod refuses leaves that action on its previous key and says so in the log, which also names every key it ended up bound to.
 
 ## Troubleshooting
 

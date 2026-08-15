@@ -67,7 +67,7 @@ Two equivalent binding sets - use whichever your keyboard has:
 
 The mod recenters itself once, a moment after it first sees tracker data. Sit how you drive when you start it, and use `Home` any time you want to reset the centre.
 
-Recenter and toggle are remappable through `[Hotkeys]` in `HeadTracking.ini` - see below.
+Every one of these keys is remappable through `[Hotkeys]` in `HeadTracking.ini`, both the nav-cluster key and the chord letter, which is worth doing if your button box or a wheel plugin already sits on one of them.
 
 ## Configuration
 
@@ -77,8 +77,8 @@ Recenter and toggle are remappable through `[Hotkeys]` in `HeadTracking.ini` - s
 |---|---|---|
 | `[Network] UdpPort` | `4242` | OpenTrack standard. Must be `1024`-`65535` |
 | `[General] EnableOnStartup` | `1` | |
-| `[Hotkeys] RecenterKey / ToggleKey` | `0x24` / `0x23` | The nav-cluster keys, as [Windows virtual-key codes](https://learn.microsoft.com/windows/win32/inputdev/virtual-key-codes). Hex or decimal |
-| `[Hotkeys] ChordRecenterKey / ChordToggleKey` | `0x54` / `0x59` | The letter in the `Ctrl+Shift+` chord for the same two actions |
+| `[Hotkeys] RecenterKey / ToggleKey / CycleModeKey` | `0x24` / `0x23` / `0x21` | The nav-cluster keys, as [Windows virtual-key codes](https://learn.microsoft.com/windows/win32/inputdev/virtual-key-codes) in hex |
+| `[Hotkeys] ChordRecenterKey / ChordToggleKey / ChordCycleModeKey` | `0x54` / `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same three actions |
 | `[Rotation] Yaw/Pitch/RollSensitivity` | `1.0` | |
 | `[Rotation] InvertYaw/Pitch/Roll` | `0` | Set the one that runs backwards for your tracker |
 | `[Rotation] Smoothing` | `0.0` | `0.0`-`1.0`. A baseline of 0.15 is always applied internally; raise this if your tracker is jittery (a phone over WiFi, say) |
@@ -93,7 +93,7 @@ Recenter and toggle are remappable through `[Hotkeys]` in `HeadTracking.ini` - s
 
 Travel limits accept `0`-`10` m and sensitivities `-100`-`100`, far past anything usable; a value outside a setting's range is replaced and the substitution is written to the log, as is a value the mod could not read as a number at all.
 
-Hotkeys are codes, not key names: `RecenterKey=Insert` is refused, `RecenterKey=0x2D` is the same key. Common ones are `Home` `0x24`, `End` `0x23`, `Insert` `0x2D`, `Delete` `0x2E`, `Page Up` `0x21`, `Page Down` `0x22`, `F1`-`F12` `0x70`-`0x7B`, `A`-`Z` `0x41`-`0x5A`, numpad `0`-`9` `0x60`-`0x69`. `Ctrl`, `Shift` and `Alt` cannot be bound - they are what the chord itself is made of. A code the mod refuses leaves that action on its previous key and says so in the log; the log also names every key it ended up bound to, so check there first if a remap did not take.
+Hotkeys are codes, not key names: `RecenterKey=Insert` is refused, `RecenterKey=0x2D` is the same key. They are read as hex, so a bare `24` is `0x24`. Common ones are `Home` `0x24`, `End` `0x23`, `Insert` `0x2D`, `Delete` `0x2E`, `Page Up` `0x21`, `Page Down` `0x22`, `F1`-`F12` `0x70`-`0x7B`, `A`-`Z` `0x41`-`0x5A`, numpad `0`-`9` `0x60`-`0x69`. `Ctrl`, `Shift` and `Alt` cannot be bound - they are what the chord itself is made of. A code the mod refuses leaves that action on its previous key and says so in the log; the log also names every key it ended up bound to, so check there first if a remap did not take.
 
 ## Troubleshooting
 

@@ -27,8 +27,9 @@ constexpr char kDefaultIniText[] =
     "; Assetto Corsa Rally Head Tracking - configuration\n"
     "; Edit values, restart the game to apply.\n"
     ";\n"
-    "; Controls: Home / Ctrl+Shift+T   recenter        (remappable, see [Hotkeys])\n"
-    ";           End  / Ctrl+Shift+Y   toggle tracking (remappable, see [Hotkeys])\n"
+    "; Controls (all remappable, see [Hotkeys]):\n"
+    ";           Home / Ctrl+Shift+T   recenter\n"
+    ";           End  / Ctrl+Shift+Y   toggle tracking\n"
     ";           PgUp / Ctrl+Shift+G   cycle tracking mode (rotation and position\n"
     ";                                 / rotation only / position only)\n\n"
     "[Network]\n"
@@ -36,14 +37,17 @@ constexpr char kDefaultIniText[] =
     "[General]\n"
     "EnableOnStartup=1\n\n"
     "[Hotkeys]\n"
-    "; Windows virtual-key codes, in hex. Each action has a nav-cluster key and a\n"
-    "; Ctrl+Shift+<key> chord, and both fire it - remap either or both.\n"
+    "; Windows virtual-key codes, read as hex - a bare 24 is 0x24, not 36. Each\n"
+    "; action has a nav-cluster key and a Ctrl+Shift+<key> chord, and both fire\n"
+    "; it - remap either or both.\n"
     "; Common codes: Home 0x24, End 0x23, Insert 0x2D, Delete 0x2E, PgUp 0x21,\n"
     "; PgDn 0x22, F1-F12 0x70-0x7B, A-Z 0x41-0x5A, numpad 0-9 0x60-0x69.\n"
     "RecenterKey=0x24\n"
     "ToggleKey=0x23\n"
+    "CycleModeKey=0x21\n"
     "ChordRecenterKey=0x54\n"
-    "ChordToggleKey=0x59\n\n"
+    "ChordToggleKey=0x59\n"
+    "ChordCycleModeKey=0x47\n\n"
     "[Rotation]\n"
     "YawSensitivity=1.0\n"
     "PitchSensitivity=1.0\n"
@@ -192,14 +196,19 @@ bool ParseIntStrict(const std::string& text, int& out) {
 }
 
 // Virtual-key codes are published as hex and that is how the shipped INI writes
-// them, but decimal is what a user reading a code off a calculator will type.
-// The base is chosen from the prefix rather than handed to strtol as 0, which
-// would additionally read a leading zero as octal - so "070" would silently
-// mean 56 rather than the F key the user was aiming at.
+// them, so that is how they are read: a bare 24 is 0x24, not 36. Choosing the
+// base from the prefix instead would make every unprefixed value ambiguous, and
+// both readings land on a real key - ToggleKey=70 is F1 to the user who wrote
+// it and the F letter key to a decimal parser, so the wrong binding is silent.
 bool ParseKeyStrict(const std::string& text, int& out) {
-    if (text.empty()) return false;
-    const bool hex = text.size() > 2 && text[0] == '0' && (text[1] == 'x' || text[1] == 'X');
-    return ParseLongStrict(text.c_str(), hex ? 16 : 10, out);
+    const char* start = text.c_str();
+    if (text.size() > 2 && start[0] == '0' && (start[1] == 'x' || start[1] == 'X')) {
+        start += 2;
+    }
+    // ReadRaw has already stripped the comment and trimmed, so ParseLongStrict
+    // rejecting a trailing character is what refuses a key name: half of them
+    // are made of hex digits, and "End" would otherwise bind 0xE.
+    return ParseLongStrict(start, 16, out);
 }
 
 void ReadBoolSetting(const cameraunlock::IniReader& ini, const char* section, const char* key,
@@ -263,7 +272,7 @@ int ReadKeySetting(const cameraunlock::IniReader& ini, const char* key, int curr
 
     int parsed = 0;
     if (!ParseKeyStrict(text, parsed)) {
-        LogUnparsed(key, text, "a virtual-key code (0x24, or 36)");
+        LogUnparsed(key, text, "a virtual-key code in hex (0x24, or a bare 24)");
         return current;
     }
     if (!IsBindableVirtualKey(parsed)) {
@@ -308,10 +317,12 @@ void LoadConfig(const std::string& exe_dir, Config& out) {
 
     ReadBoolSetting(ini, "General", "EnableOnStartup", out.enable_on_startup);
 
-    out.recenter_key       = ReadKeySetting(ini, "RecenterKey",      out.recenter_key);
-    out.toggle_key         = ReadKeySetting(ini, "ToggleKey",        out.toggle_key);
-    out.chord_recenter_key = ReadKeySetting(ini, "ChordRecenterKey", out.chord_recenter_key);
-    out.chord_toggle_key   = ReadKeySetting(ini, "ChordToggleKey",   out.chord_toggle_key);
+    out.recenter_key         = ReadKeySetting(ini, "RecenterKey",       out.recenter_key);
+    out.toggle_key           = ReadKeySetting(ini, "ToggleKey",         out.toggle_key);
+    out.cycle_mode_key       = ReadKeySetting(ini, "CycleModeKey",      out.cycle_mode_key);
+    out.chord_recenter_key   = ReadKeySetting(ini, "ChordRecenterKey",  out.chord_recenter_key);
+    out.chord_toggle_key     = ReadKeySetting(ini, "ChordToggleKey",    out.chord_toggle_key);
+    out.chord_cycle_mode_key = ReadKeySetting(ini, "ChordCycleModeKey", out.chord_cycle_mode_key);
 
     out.yaw_sensitivity    = ReadSensitivity(ini, "Rotation", "YawSensitivity",   out.yaw_sensitivity);
     out.pitch_sensitivity  = ReadSensitivity(ini, "Rotation", "PitchSensitivity", out.pitch_sensitivity);
