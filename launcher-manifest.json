@@ -2,7 +2,7 @@
   "schema_version": 2,
   "mod_info": {
     "name": "AssettoCorsaRallyHeadTracking",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "game_id": "assetto-corsa-rally"
   },
   "strategy": "AsiLoader",

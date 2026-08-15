@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.2] - 2026-08-15
+
+### Added
+
+- make the mode cycle hotkey remappable and read key codes as hex only
+
 ## [1.0.1] - 2026-08-15
 
 ### Added
