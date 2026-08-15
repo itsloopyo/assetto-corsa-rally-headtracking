@@ -1,0 +1,62 @@
+[workspace]
+name = "assetto-corsa-rally-headtracking"
+version = "0.0.0"
+description = "Head tracking mod for Assetto Corsa Rally (Unreal Engine 5)"
+license = "MIT"
+channels = ["conda-forge"]
+platforms = ["win-64"]
+
+[tasks]
+sync = "git submodule update --remote cameraunlock-core"
+
+# No -G: let CMake auto-detect the installed Visual Studio generator. Pinning
+# "Visual Studio 17 2022" broke on CI once the windows runner image moved to
+# VS 2026 (VS 17 absent); auto-detect picks whatever VS the machine has.
+#
+# Run unconditionally. `cmake -B` is idempotent and cheap on an already
+# configured tree, whereas skipping on the mere existence of build/ meant a
+# configure that died partway - a dropped connection during the MinHook fetch,
+# an interrupted run - left a directory that every later build, test and
+# package reused and failed against, with no way back except deleting it by
+# hand.
+setup = "cmake -B build -A x64"
+
+build = { cmd = "cmake --build build --config Release", depends-on = ["setup"] }
+build-debug = { cmd = "cmake --build build --config Debug", depends-on = ["setup"] }
+
+# The game-process-free half of the mod: the config boundary, the executable
+# path handling, the camera composition and the detour's clean-pose table.
+# Runs the binary directly rather than through ctest so a failing assertion's
+# name reaches the console.
+test = { cmd = "cmake --build build --config Release --target acr_ht_tests && build/tests/Release/acr_ht_tests.exe", depends-on = ["setup"] }
+
+clean = { cmd = """
+    powershell -Command "if (Test-Path 'build') { Remove-Item 'build' -Recurse -Force }; Write-Host 'Build artifacts cleaned' -ForegroundColor Green"
+""" }
+
+# Dev loop: build, then copy the .asi + vendored loader straight into the
+# detected game folder. install.cmd is the end-user path and is not run here -
+# it pauses when it isn't given /y, and pixi allocates no stdin to read from.
+install = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/deploy.ps1", depends-on = ["build"] }
+
+# Launch the game unattended for a fixed window, then kill it and print the
+# mod's log. The whole discovery loop runs off this.
+probe = "powershell -ExecutionPolicy Bypass -File scripts/probe-run.ps1"
+
+# Bump the vendored Ultimate ASI Loader copy. Manual; commit the result.
+update-deps = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/update-deps.ps1" }
+
+# -NoRefresh: packaging must not move the cameraunlock-core submodule pointer.
+# Without it the packager fast-forwards the submodule to origin/main on a
+# developer's machine while CI (which is exempted) uses the committed pointer,
+# so the two package different core revisions - and the resulting dirty tree
+# then trips release.ps1's clean-tree check. Bumping the submodule is what
+# `pixi run sync` is for, and it leaves a commit behind.
+package = { cmd = "powershell -ExecutionPolicy Bypass -File scripts/package-release.ps1 -NoRefresh", depends-on = ["build"] }
+
+uninstall = "scripts/uninstall.cmd /y"
+
+release = "powershell -ExecutionPolicy Bypass -File scripts/release.ps1"
+
+[dependencies]
+# No pixi-managed deps - relies on system CMake + Visual Studio.
