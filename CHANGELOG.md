@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2026-08-15
+
+### Added
+
+- make recenter and toggle hotkeys remappable via [Hotkeys] in the INI
+
 ## [1.0.0] - 2026-08-15
 ### Added
 
