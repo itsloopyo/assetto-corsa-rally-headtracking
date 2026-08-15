@@ -1,7 +1,6 @@
 # Changelog
 
-## [Unreleased]
-
+## [1.0.0] - 2026-08-15
 ### Added
 
 - Head tracking for Assetto Corsa Rally (Unreal Engine 5.4), covering rotation
