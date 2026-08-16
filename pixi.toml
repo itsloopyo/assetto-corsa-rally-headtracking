@@ -1,6 +1,6 @@
 [workspace]
 name = "assetto-corsa-rally-headtracking"
-version = "1.0.2"
+version = "1.0.3"
 description = "Head tracking mod for Assetto Corsa Rally (Unreal Engine 5)"
 license = "MIT"
 channels = ["conda-forge"]

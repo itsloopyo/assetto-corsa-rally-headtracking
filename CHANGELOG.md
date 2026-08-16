@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.3] - 2026-08-17
+
+### Added
+
+- split smoothing into LocalSmoothing and RemoteSmoothing
+
 ## [Unreleased]
 
 ### Changed
