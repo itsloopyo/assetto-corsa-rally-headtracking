@@ -27,7 +27,7 @@ set "ASI_LOADER_NAME=dinput8.dll"
 :: Version of the vendored Ultimate ASI Loader, recorded in the state
 :: file so the launcher can tell which loader build it is looking at.
 :: Bump alongside vendor/ultimate-asi-loader via `pixi run update-deps`.
-set "ASI_LOADER_VERSION=9.7.3"
+set "ASI_LOADER_VERSION=9.7.2"
 set "MOD_CONTROLS=Home / Ctrl+Shift+T recenter, End / Ctrl+Shift+Y toggle tracking, PgUp / Ctrl+Shift+G cycle tracking mode"
 :: ASI_LOADER_NAME is the filename the ASI DLL is renamed to. DL2 and most
 :: modern games use winmm.dll; older ones use dinput8.dll or xinput1_3.dll.

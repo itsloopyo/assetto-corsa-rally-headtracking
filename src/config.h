@@ -29,7 +29,13 @@ struct Config {
     bool invert_pitch = false;
     bool invert_roll = false;
 
-    float smoothing = 0.0f;
+    // Smoothing is chosen per connection from the packet's source address, and
+    // both values cover rotation and position alike. A tracker running on this
+    // machine is already steady, so local_smoothing is 0.0 and nothing floors
+    // it; a phone on WiFi jitters over the network, which is what
+    // remote_smoothing is for.
+    float local_smoothing = 0.0f;
+    float remote_smoothing = 0.15f;
 
     // Near clip plane, in centimetres, used while head tracking is driving the
     // view. The game ships 5 cm, which is further from the eye than the
@@ -62,7 +68,6 @@ struct Config {
     float limit_y = 0.12f;
     float limit_z = 0.20f;
     float limit_z_back = 0.0f;
-    float position_smoothing = 0.15f;
 };
 
 // Reads HeadTracking.ini from `exe_dir` over `out`. Keys that are absent, or

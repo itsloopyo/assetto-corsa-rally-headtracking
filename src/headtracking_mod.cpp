@@ -17,6 +17,7 @@
 
 #include <cameraunlock/input/chord_hotkeys.h>
 #include <cameraunlock/input/hotkey_poller.h>
+#include <cameraunlock/math/smoothing_utils.h>
 #include <cameraunlock/protocol/udp_receiver.h>
 #include <cameraunlock/tracking/head_tracking_session.h>
 
@@ -26,6 +27,10 @@ namespace {
 using Session = cameraunlock::HeadTrackingSession<cameraunlock::UdpReceiver>;
 static_assert(Session::kHasRemoteRecenter,
               "UdpReceiver must forward TryConsumeRecenterRequest for tracker-app recentering");
+// Without IsRemoteConnection() on the receiver the session silently falls back
+// to LocalSmoothing forever, with nothing at the call site to show it.
+static_assert(Session::kHasRemoteConnection,
+              "UdpReceiver must expose IsRemoteConnection() to select Local/RemoteSmoothing");
 
 Config g_config;
 cameraunlock::UdpReceiver g_receiver;
@@ -61,19 +66,48 @@ void ApplyConfigToPipeline(const Config& config, Session& session) {
 
     auto& proc = session.GetProcessor();
     proc.SetSensitivity(sensitivity);
-    proc.SetSmoothing(config.smoothing);
 
     cameraunlock::PositionSettings position(
         config.position_sensitivity_x,
         config.position_sensitivity_y,
         config.position_sensitivity_z,
         config.limit_x, config.limit_y, config.limit_z, config.limit_z_back,
-        config.position_smoothing,
+        config.local_smoothing, config.remote_smoothing,
         config.invert_position_x, config.invert_position_y, config.invert_position_z);
     session.GetPositionProcessor().SetSettings(position);
 
+    // One pair of values for rotation and position alike, applied after the
+    // position settings so a settings rebuild cannot drop them. The session
+    // picks between the two per connection from the receiver's source-address
+    // check, so nothing here decides which one is in effect.
+    session.SetLocalSmoothing(config.local_smoothing);
+    session.SetRemoteSmoothing(config.remote_smoothing);
+
     session.SetMode(config.position_enabled ? cameraunlock::TrackingMode::RotationAndPosition
                                             : cameraunlock::TrackingMode::RotationOnly);
+}
+
+// The last connection locality the log reported. Only the camera thread touches
+// these, and only through LogConnectionLocality below.
+bool g_remoteConnection = false;
+bool g_remoteConnectionKnown = false;
+
+// The session re-reads the receiver's source-address check every update, so a
+// player who switches from a local OpenTrack instance to a phone on WiFi
+// mid-session gets the other smoothing parameter without restarting the game.
+// This only records the switch, so a bug report can say which of the two values
+// was actually in effect.
+void LogConnectionLocality() {
+    const bool isRemote = g_session.IsRemoteConnection();
+    if (g_remoteConnectionKnown && isRemote == g_remoteConnection) return;
+
+    g_remoteConnection = isRemote;
+    g_remoteConnectionKnown = true;
+
+    Log::Line("[udp] tracker source is %s - smoothing=%.2f",
+              isRemote ? "a remote device" : "on this machine",
+              cameraunlock::math::GetEffectiveSmoothing(
+                  g_config.local_smoothing, g_config.remote_smoothing, isRemote));
 }
 
 void Recenter() {
@@ -192,9 +226,11 @@ void LoadAndApplyConfig(const std::string& exeDir) {
         WriteDefaultConfigIfMissing(exeDir);
         LoadConfig(exeDir, g_config);
     }
-    Log::Line("[boot] config: port=%u enableOnStartup=%d smoothing=%.2f position=%d",
+    Log::Line("[boot] config: port=%u enableOnStartup=%d localSmoothing=%.2f "
+              "remoteSmoothing=%.2f position=%d",
               static_cast<unsigned>(g_config.udp_port), g_config.enable_on_startup ? 1 : 0,
-              g_config.smoothing, g_config.position_enabled ? 1 : 0);
+              g_config.local_smoothing, g_config.remote_smoothing,
+              g_config.position_enabled ? 1 : 0);
 
     ApplyConfigToPipeline(g_config, g_session);
     g_trackingEnabled.store(g_config.enable_on_startup);
@@ -312,6 +348,7 @@ bool ComposeTrackedCamera(const CameraPose& clean, float deltaTime, CameraPose& 
     // not - it estimates the sample interval against wall time and would
     // extrapolate twice as far ahead as it should.
     g_session.Update(deltaTime);
+    LogConnectionLocality();
 
     HeadPose pose;
     const bool haveRotation = g_session.GetRotation(pose.yaw, pose.pitch, pose.roll);

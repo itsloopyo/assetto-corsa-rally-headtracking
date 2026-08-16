@@ -102,7 +102,8 @@ Config Poisoned() {
     c.invert_yaw = true;
     c.invert_pitch = true;
     c.invert_roll = true;
-    c.smoothing = 0.7f;
+    c.local_smoothing = 0.7f;
+    c.remote_smoothing = 0.8f;
     c.near_clip_cm = 42.0f;
     c.position_enabled = false;
     c.position_sensitivity_x = 3.1f;
@@ -115,7 +116,6 @@ Config Poisoned() {
     c.limit_y = 1.2f;
     c.limit_z = 1.3f;
     c.limit_z_back = 1.4f;
-    c.position_smoothing = 0.9f;
     return c;
 }
 
@@ -162,8 +162,10 @@ void CheckMatchesDefaults(const Config& loaded, const char* label) {
          static_cast<double>(loaded.invert_pitch), static_cast<double>(defaults.invert_pitch));
     same(loaded.invert_roll == defaults.invert_roll, "invert_roll",
          static_cast<double>(loaded.invert_roll), static_cast<double>(defaults.invert_roll));
-    same(Near(loaded.smoothing, defaults.smoothing, 1e-6), "smoothing",
-         static_cast<double>(loaded.smoothing), static_cast<double>(defaults.smoothing));
+    same(Near(loaded.local_smoothing, defaults.local_smoothing, 1e-6), "local_smoothing",
+         static_cast<double>(loaded.local_smoothing), static_cast<double>(defaults.local_smoothing));
+    same(Near(loaded.remote_smoothing, defaults.remote_smoothing, 1e-6), "remote_smoothing",
+         static_cast<double>(loaded.remote_smoothing), static_cast<double>(defaults.remote_smoothing));
     same(Near(loaded.near_clip_cm, defaults.near_clip_cm, 1e-6), "near_clip_cm",
          static_cast<double>(loaded.near_clip_cm), static_cast<double>(defaults.near_clip_cm));
     same(loaded.position_enabled == defaults.position_enabled, "position_enabled",
@@ -188,8 +190,6 @@ void CheckMatchesDefaults(const Config& loaded, const char* label) {
          static_cast<double>(loaded.limit_z), static_cast<double>(defaults.limit_z));
     same(Near(loaded.limit_z_back, defaults.limit_z_back, 1e-6), "limit_z_back",
          static_cast<double>(loaded.limit_z_back), static_cast<double>(defaults.limit_z_back));
-    same(Near(loaded.position_smoothing, defaults.position_smoothing, 1e-6), "position_smoothing",
-         static_cast<double>(loaded.position_smoothing), static_cast<double>(defaults.position_smoothing));
 
     Check(g_failures, mismatches == 0, label);
     if (mismatches != 0) {
@@ -234,7 +234,7 @@ void AMissingConfigLeavesTheCallersValuesAlone() {
     Config loaded = Poisoned();
     acr_ht::LoadConfig(dir.Path(), loaded);
     Check(g_failures,
-          loaded.udp_port == 5555 && Near(loaded.smoothing, 0.7f, 1e-6),
+          loaded.udp_port == 5555 && Near(loaded.local_smoothing, 0.7f, 1e-6),
           "a missing config leaves the caller's values untouched");
 }
 
@@ -244,7 +244,8 @@ void OutOfRangeValuesFallBackRatherThanReachingTheEngine() {
 
     const char kHostileIni[] =
         "[Network]\nUdpPort=70000\n"
-        "[Rotation]\nSmoothing=nan\nYawSensitivity=1e30\nPitchSensitivity=1e40\n"
+        "[Rotation]\nLocalSmoothing=nan\nRemoteSmoothing=nan\n"
+        "YawSensitivity=1e30\nPitchSensitivity=1e40\n"
         "[Camera]\nNearClipCm=-3.0\n"
         "[Position]\nLimitZ=10000\nLimitZBack=-1\n";
     WriteFileBytes(dir.IniPath(), kHostileIni, sizeof(kHostileIni) - 1);
@@ -256,7 +257,8 @@ void OutOfRangeValuesFallBackRatherThanReachingTheEngine() {
     // caller's value untouched - that is what
     // GeneratedIniLoadsBackAsTheShippedDefaults covers, by requiring every key
     // to round trip.
-    loaded.smoothing = 0.5f;
+    loaded.local_smoothing = 0.5f;
+    loaded.remote_smoothing = 0.5f;
     loaded.udp_port = 5555;
     loaded.limit_z_back = 0.07f;
     loaded.pitch_sensitivity = 2.25f;
@@ -266,7 +268,15 @@ void OutOfRangeValuesFallBackRatherThanReachingTheEngine() {
     acr_ht::LoadConfig(dir.Path(), loaded);
 
     Check(g_failures, loaded.udp_port == 5555, "an out-of-range port keeps the caller's value");
-    Check(g_failures, Near(loaded.smoothing, 0.0f, 1e-6), "a NaN smoothing falls back to 0");
+    // Each key falls back to ITS OWN shipped default, not to a single shared
+    // one. A malformed RemoteSmoothing answered with LocalSmoothing's 0.0 would
+    // leave a phone on WiFi with no smoothing at all on raw network jitter,
+    // which is the one case RemoteSmoothing exists to cover, and the seeded 0.5
+    // above is what makes the two outcomes tell apart.
+    Check(g_failures, Near(loaded.local_smoothing, 0.0f, 1e-6),
+          "a NaN LocalSmoothing falls back to the local default 0.0");
+    Check(g_failures, Near(loaded.remote_smoothing, 0.15f, 1e-6),
+          "a NaN RemoteSmoothing falls back to the remote default 0.15, not to 0.0");
     Check(g_failures, Near(loaded.yaw_sensitivity, acr_ht::kMaxSensitivity, 1e-6),
           "an absurd finite sensitivity is clamped to the bound");
     // 1e40 overflows a float to +inf, which is not finite, so it takes the
@@ -320,9 +330,22 @@ void MalformedValuesAreRefusedRatherThanMisread() {
                       "a decimal comma is refused rather than read as zero");
             });
 
-    WithIni("[Rotation]\nSmoothing=1,5\n", [](Config& c) { c.smoothing = 0.3f; },
+    // Sanitising smoothing is validation, never a floor. A configured zero is a
+    // real setting - track me with no added latency - so it has to reach the
+    // Config as written, on the remote key as much as the local one, even
+    // though the remote key's fallback is 0.15.
+    WithIni("[Rotation]\nLocalSmoothing=0.0\nRemoteSmoothing=0.0\n",
+            [](Config& c) { c.local_smoothing = 0.3f; c.remote_smoothing = 0.3f; },
             [](const Config& c) {
-                Check(g_failures, Near(c.smoothing, 0.3f, 1e-6),
+                Check(g_failures, Near(c.local_smoothing, 0.0f, 1e-6),
+                      "a configured LocalSmoothing of 0 survives verbatim");
+                Check(g_failures, Near(c.remote_smoothing, 0.0f, 1e-6),
+                      "a configured RemoteSmoothing of 0 survives verbatim, never floored to 0.15");
+            });
+
+    WithIni("[Rotation]\nLocalSmoothing=1,5\n", [](Config& c) { c.local_smoothing = 0.3f; },
+            [](const Config& c) {
+                Check(g_failures, Near(c.local_smoothing, 0.3f, 1e-6),
                       "a decimal comma in smoothing keeps the previous value");
             });
 
@@ -332,9 +355,9 @@ void MalformedValuesAreRefusedRatherThanMisread() {
                       "a value that is not a number at all keeps the previous value");
             });
 
-    WithIni("[Rotation]\nSmoothing=\n", [](Config& c) { c.smoothing = 0.3f; },
+    WithIni("[Rotation]\nLocalSmoothing=\n", [](Config& c) { c.local_smoothing = 0.3f; },
             [](const Config& c) {
-                Check(g_failures, Near(c.smoothing, 0.3f, 1e-6),
+                Check(g_failures, Near(c.local_smoothing, 0.3f, 1e-6),
                       "an empty value keeps the previous value");
             });
 

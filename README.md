@@ -81,7 +81,8 @@ Every one of these keys is remappable through `[Hotkeys]` in `HeadTracking.ini`,
 | `[Hotkeys] ChordRecenterKey / ChordToggleKey / ChordCycleModeKey` | `0x54` / `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same three actions |
 | `[Rotation] Yaw/Pitch/RollSensitivity` | `1.0` | |
 | `[Rotation] InvertYaw/Pitch/Roll` | `0` | Set the one that runs backwards for your tracker |
-| `[Rotation] Smoothing` | `0.0` | `0.0`-`1.0`. A baseline of 0.15 is always applied internally; raise this if your tracker is jittery (a phone over WiFi, say) |
+| `[Rotation] LocalSmoothing` | `0.0` | `0.0`-`1.0`, used when the tracker runs on this PC. Covers rotation and position |
+| `[Rotation] RemoteSmoothing` | `0.15` | `0.0`-`1.0`, used when the tracker is a device on the network (e.g. a phone over WiFi). Covers rotation and position. |
 | `[Camera] NearClipCm` | `1.0` | Near clip plane in centimetres while tracking is driving the view. The game's own 5.0 sits further from your eye than your seat back, so looking over a shoulder would clip the seat away and show the world through it. `0` turns the adjustment off and leaves the game's value alone, as does a negative value; anything positive is clamped to `0.1`-`100`. |
 | `[Position] Enabled` | `1` | |
 | `[Position] SensitivityX/Y/Z` | `1.0` | |
@@ -89,7 +90,6 @@ Every one of these keys is remappable through `[Hotkeys]` in `HeadTracking.ini`,
 | `[Position] LimitX / LimitY` | `0.15` / `0.12` m | Sized for a cabin: the door and roll cage are a forearm away |
 | `[Position] LimitZ` | `0.20` m | Lean in toward the windscreen. Larger values put your eye out over the bonnet |
 | `[Position] LimitZBack` | `0.0` m | Backward travel, off by default: strapped into a rally seat your head is already against the headrest, so every centimetre granted here is spent moving your eye into the seat |
-| `[Position] Smoothing` | `0.15` | `0.0`-`1.0` |
 
 Travel limits accept `0`-`10` m and sensitivities `-100`-`100`, far past anything usable; a value outside a setting's range is replaced and the substitution is written to the log, as is a value the mod could not read as a number at all.
 

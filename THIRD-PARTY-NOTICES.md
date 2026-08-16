@@ -4,7 +4,7 @@ This mod bundles or links the following third-party components.
 
 ## Ultimate ASI Loader
 
-- **Version:** v9.7.3 (commit `776f75ca5c92e022f8848550d1ba9e784b9a4d7d`)
+- **Version:** v9.7.2 (commit `ab722befd52581a34449b603926cfab476e66b05`)
 - **License:** MIT
 - **Upstream:** https://github.com/ThirteenAG/Ultimate-ASI-Loader
 - **Usage:** Loads the mod's `.asi` into the game by proxying the `dinput8.dll` import in `acr/Binaries/Win64`.

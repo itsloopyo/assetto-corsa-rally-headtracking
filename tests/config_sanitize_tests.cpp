@@ -21,18 +21,46 @@ int g_failures = 0;
 constexpr float kNan = std::numeric_limits<float>::quiet_NaN();
 constexpr float kInf = std::numeric_limits<float>::infinity();
 
+// The shipped default of each smoothing key. They are not the same number, and
+// that is the whole point of the fallback argument.
+constexpr float kLocalDefault  = 0.0f;
+constexpr float kRemoteDefault = 0.15f;
+
 void SmoothingStaysInsideZeroToOne() {
     using acr_ht::SanitizeSmoothing;
     // Non-finite values are replaced by the fallback before the clamp is
-    // reached, so an infinity lands on the default rather than on a bound.
-    Check(g_failures, SanitizeSmoothing(kNan) == 0.0f, "smoothing NaN falls back to 0");
-    Check(g_failures, SanitizeSmoothing(kInf) == 0.0f, "smoothing +inf falls back to 0");
-    Check(g_failures, SanitizeSmoothing(-kInf) == 0.0f, "smoothing -inf falls back to 0");
-    Check(g_failures, SanitizeSmoothing(-5.0f) == 0.0f, "smoothing below 0 clamps to 0");
-    // Above 1 the speed lerp goes negative, so the per-frame factor turns
-    // negative and the view extrapolates away from the tracker.
-    Check(g_failures, SanitizeSmoothing(2.5f) == 1.0f, "smoothing above 1 clamps to 1");
-    Check(g_failures, SanitizeSmoothing(0.4f) == 0.4f, "smoothing in range is untouched");
+    // reached, so an infinity lands on the default rather than on a bound - and
+    // the default is the one belonging to the key that was read. Answering a
+    // malformed RemoteSmoothing with LocalSmoothing's 0.0 would hand a phone on
+    // WiFi no smoothing at all on raw network jitter.
+    Check(g_failures, SanitizeSmoothing(kNan, kLocalDefault) == 0.0f,
+          "a NaN LocalSmoothing falls back to the local default 0.0");
+    Check(g_failures, SanitizeSmoothing(kNan, kRemoteDefault) == 0.15f,
+          "a NaN RemoteSmoothing falls back to the remote default 0.15, not to 0.0");
+    Check(g_failures, SanitizeSmoothing(kInf, kRemoteDefault) == 0.15f,
+          "a +inf RemoteSmoothing falls back to the remote default 0.15");
+    Check(g_failures, SanitizeSmoothing(-kInf, kRemoteDefault) == 0.15f,
+          "a -inf RemoteSmoothing falls back to the remote default 0.15");
+    Check(g_failures, SanitizeSmoothing(kInf, kLocalDefault) == 0.0f,
+          "a +inf LocalSmoothing falls back to the local default 0.0");
+    Check(g_failures, SanitizeSmoothing(-kInf, kLocalDefault) == 0.0f,
+          "a -inf LocalSmoothing falls back to the local default 0.0");
+
+    Check(g_failures, SanitizeSmoothing(-5.0f, kRemoteDefault) == 0.0f,
+          "smoothing below 0 clamps to the bound, not to the fallback");
+    // Out of range saturates. Not because the math breaks - the core clamps its
+    // own interpolation speed to [0.1, 50], so a smoothing above 1 no longer
+    // drives the per-frame factor negative - but so the value the mod acts on
+    // and the value the INI advertises stay the same number.
+    Check(g_failures, SanitizeSmoothing(2.5f, kLocalDefault) == 1.0f,
+          "smoothing above 1 clamps to 1");
+    Check(g_failures, SanitizeSmoothing(0.4f, kLocalDefault) == 0.4f,
+          "smoothing in range is untouched");
+    // A configured zero is a real setting - track me with no added latency -
+    // and it must reach the processor as written even on the remote key, whose
+    // fallback is 0.15. This is validation, never a floor.
+    Check(g_failures, SanitizeSmoothing(0.0f, kRemoteDefault) == 0.0f,
+          "a configured 0 survives verbatim on the remote key, never floored to 0.15");
 }
 
 void SensitivityKeepsItsSignButNotItsInfinities() {

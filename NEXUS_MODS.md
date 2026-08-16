@@ -102,7 +102,7 @@ There is no minimum game patch. The mod resolves the camera through Unreal's own
 2. Point it at your PC's local IP address (run `ipconfig` to find it) on port `4242`.
 3. Start tracking on the phone.
 
-If a phone app over WiFi is jittery, route it through OpenTrack for smoothing: send from the phone to OpenTrack on a different port (`5252`, say, opened in your firewall), then have OpenTrack output to `127.0.0.1:4242`. Raising `[Rotation] Smoothing` in the INI works too.
+If a phone app over WiFi is jittery, route it through OpenTrack for smoothing: send from the phone to OpenTrack on a different port (`5252`, say, opened in your firewall), then have OpenTrack output to `127.0.0.1:4242`. Raising `[Rotation] RemoteSmoothing` in the INI works too - that is the value a phone on the network gets.
 
 The mod recenters itself once, a moment after it first sees tracker data. Sit the way you drive when you start tracking, and press `Home` any time you want to reset the centre.
 
@@ -118,7 +118,8 @@ The mod recenters itself once, a moment after it first sees tracker data. Sit th
 | `[Hotkeys] ChordRecenterKey` / `ChordToggleKey` / `ChordCycleModeKey` | `0x54` / `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same three actions |
 | `[Rotation] YawSensitivity` / `PitchSensitivity` / `RollSensitivity` | `1.0` | |
 | `[Rotation] InvertYaw` / `InvertPitch` / `InvertRoll` | `0` | Set whichever axis runs backwards for your tracker |
-| `[Rotation] Smoothing` | `0.0` | `0.0` to `1.0`. A baseline of 0.15 is always applied internally; raise this if your tracker is jittery |
+| `[Rotation] LocalSmoothing` | `0.0` | `0.0` to `1.0`, used when the tracker runs on this PC. Covers rotation and position, and nothing floors it |
+| `[Rotation] RemoteSmoothing` | `0.15` | `0.0` to `1.0`, used when the tracker is a device on the network. Covers rotation and position. Raise this if that feed is jittery |
 | `[Camera] NearClipCm` | `1.0` | Near clip plane in centimetres while tracking is driving the view. The game's own 5.0 sits further from your eye than the seat back, so looking over a shoulder would clip the seat away and show the world through it. `0` turns the adjustment off and leaves the game's value alone, as does a negative value; anything positive is clamped to `0.1`-`100` |
 | `[Position] Enabled` | `1` | |
 | `[Position] SensitivityX` / `Y` / `Z` | `1.0` | |
@@ -126,7 +127,6 @@ The mod recenters itself once, a moment after it first sees tracker data. Sit th
 | `[Position] LimitX` / `LimitY` | `0.15` / `0.12` m | Cabin-sized, not room-sized: the door and the roll cage are a forearm away |
 | `[Position] LimitZ` | `0.20` m | How far you may lean in toward the windscreen. Larger values put your eye out over the bonnet |
 | `[Position] LimitZBack` | `0.0` m | Backward travel, off by default: strapped into a rally seat your head is already against the headrest, so every centimetre granted here is spent moving your eye into the seat. Raise it only if you sit forward of the headrest |
-| `[Position] Smoothing` | `0.15` | |
 
 Travel limits accept `0`-`10` m and sensitivities `-100`-`100`, far past anything usable. A value outside a setting's range is refused and the substitution written to the log, as is a value the mod could not read as a number at all - so a setting that appears to do nothing is explained there rather than silently ignored. Write decimals with a full stop (`0.15`, not `0,15`), and note that a comment placed at the end of a value line is fine.
 
@@ -196,7 +196,7 @@ That is the near clip plane cutting away geometry nearer to your eye than it all
 That is deliberate. It follows your head only while the camera is on your car, so the menus, the car showcase, the loading screens and the service park are left as the game renders them. Pausing is handled separately - it leaves the camera on your car, so the mod asks the engine whether the game is paused - and the view holds until you resume.
 
 **The camera jitters.**
-- Raise `[Rotation] Smoothing` and `[Position] Smoothing` in the INI.
+- Raise the smoothing value your tracker actually uses: `[Rotation] LocalSmoothing` if it runs on this PC, `[Rotation] RemoteSmoothing` if it is a phone or other device on the network. The log says which of the two is in effect.
 - Add smoothing in your tracking source. OpenTrack has a smoothing filter.
 - A phone app over WiFi will always show some jitter. Route it through OpenTrack for smoothing.
 - For webcam tracking, improve your lighting.
