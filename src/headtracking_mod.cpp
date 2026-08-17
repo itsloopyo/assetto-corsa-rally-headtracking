@@ -67,7 +67,7 @@ void ApplyConfigToPipeline(const Config& config, Session& session) {
     auto& proc = session.GetProcessor();
     proc.SetSensitivity(sensitivity);
 
-    cameraunlock::PositionSettings position(
+    cameraunlock::PositionSettings position = cameraunlock::PositionSettings::Symmetric(
         config.position_sensitivity_x,
         config.position_sensitivity_y,
         config.position_sensitivity_z,
