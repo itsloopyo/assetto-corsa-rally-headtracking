@@ -90,10 +90,8 @@ Config Poisoned() {
     Config c;
     c.udp_port = 5555;
     c.enable_on_startup = false;
-    c.recenter_key = 0x70;
     c.toggle_key = 0x71;
     c.cycle_mode_key = 0x72;
-    c.chord_recenter_key = 0x73;
     c.chord_toggle_key = 0x74;
     c.chord_cycle_mode_key = 0x75;
     c.yaw_sensitivity = 2.5f;
@@ -135,15 +133,10 @@ void CheckMatchesDefaults(const Config& loaded, const char* label) {
          static_cast<double>(loaded.udp_port), static_cast<double>(defaults.udp_port));
     same(loaded.enable_on_startup == defaults.enable_on_startup, "enable_on_startup",
          static_cast<double>(loaded.enable_on_startup), static_cast<double>(defaults.enable_on_startup));
-    same(loaded.recenter_key == defaults.recenter_key, "recenter_key",
-         static_cast<double>(loaded.recenter_key), static_cast<double>(defaults.recenter_key));
     same(loaded.toggle_key == defaults.toggle_key, "toggle_key",
          static_cast<double>(loaded.toggle_key), static_cast<double>(defaults.toggle_key));
     same(loaded.cycle_mode_key == defaults.cycle_mode_key, "cycle_mode_key",
          static_cast<double>(loaded.cycle_mode_key), static_cast<double>(defaults.cycle_mode_key));
-    same(loaded.chord_recenter_key == defaults.chord_recenter_key, "chord_recenter_key",
-         static_cast<double>(loaded.chord_recenter_key),
-         static_cast<double>(defaults.chord_recenter_key));
     same(loaded.chord_toggle_key == defaults.chord_toggle_key, "chord_toggle_key",
          static_cast<double>(loaded.chord_toggle_key),
          static_cast<double>(defaults.chord_toggle_key));
@@ -447,13 +440,13 @@ void HashIsNotAComment() {
 }
 
 // The nav cluster is prime real estate on a sim rig - a wheel button box or the
-// game's own binds may already be there - so both halves of recenter and toggle
-// are remappable. A code the mod cannot bind has to leave the action on its
+// game's own binds may already be there - so both halves of every action are
+// remappable. A code the mod cannot bind has to leave the action on its
 // previous key rather than on nothing.
 void HotkeysAreRemappable() {
-    WithIni("[Hotkeys]\nRecenterKey=0x2D\nChordRecenterKey=0x4B\n", [](Config&) {},
+    WithIni("[Hotkeys]\nToggleKey=0x2D\nChordToggleKey=0x4B\n", [](Config&) {},
             [](const Config& c) {
-                Check(g_failures, c.recenter_key == 0x2D && c.chord_recenter_key == 0x4B,
+                Check(g_failures, c.toggle_key == 0x2D && c.chord_toggle_key == 0x4B,
                       "a hex virtual-key code rebinds both halves of an action");
             });
 
@@ -485,9 +478,9 @@ void HotkeysAreRemappable() {
                       "a key name made of hex digits is refused, not read as 0xE");
             });
 
-    WithIni("[Hotkeys]\nRecenterKey=0x24 ; Home\n", [](Config& c) { c.recenter_key = 0x70; },
+    WithIni("[Hotkeys]\nCycleModeKey=0x24 ; Home\n", [](Config& c) { c.cycle_mode_key = 0x70; },
             [](const Config& c) {
-                Check(g_failures, c.recenter_key == 0x24,
+                Check(g_failures, c.cycle_mode_key == 0x24,
                       "a key code with a trailing comment is still read");
             });
 
@@ -499,9 +492,9 @@ void HotkeysAreRemappable() {
                       "a modifier key is refused and the previous binding stands");
             });
 
-    WithIni("[Hotkeys]\nRecenterKey=0\n", [](Config& c) { c.recenter_key = 0x24; },
+    WithIni("[Hotkeys]\nCycleModeKey=0\n", [](Config& c) { c.cycle_mode_key = 0x24; },
             [](const Config& c) {
-                Check(g_failures, c.recenter_key == 0x24,
+                Check(g_failures, c.cycle_mode_key == 0x24,
                       "zero is not a key, and leaves the action bound where it was");
             });
 

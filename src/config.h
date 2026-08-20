@@ -13,12 +13,9 @@ struct Config {
 
     // Windows virtual-key codes. Each action has a nav-cluster key and a
     // Ctrl+Shift+<key> chord, and both fire it - the chord exists for keyboards
-    // with no nav cluster. Defaults: Home, End, PgUp, and the T/Y/G chord
-    // letters.
-    int recenter_key = 0x24;
+    // with no nav cluster. Defaults: End, PgUp, and the Y/G chord letters.
     int toggle_key = 0x23;
     int cycle_mode_key = 0x21;
-    int chord_recenter_key = 0x54;
     int chord_toggle_key = 0x59;
     int chord_cycle_mode_key = 0x47;
 

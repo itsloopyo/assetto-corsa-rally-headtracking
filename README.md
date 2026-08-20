@@ -54,7 +54,6 @@ Two equivalent binding sets - use whichever your keyboard has:
 
 | Action              | Nav-cluster | Chord          |
 |---------------------|-------------|----------------|
-| Recenter            | `Home`      | `Ctrl+Shift+T` |
 | Toggle tracking     | `End`       | `Ctrl+Shift+Y` |
 | Cycle tracking mode | `Page Up`   | `Ctrl+Shift+G` |
 
@@ -65,7 +64,7 @@ Two equivalent binding sets - use whichever your keyboard has:
 3. Rotational tracking disabled, positional tracking enabled
 4. Back to normal
 
-The mod recenters itself once, a moment after it first sees tracker data. Sit how you drive when you start it, and use `Home` any time you want to reset the centre.
+The mod never picks a centre on its own. It uses whatever your tracker sends, so centre it in your tracker app while sitting how you drive.
 
 Every one of these keys is remappable through `[Hotkeys]` in `HeadTracking.ini`, both the nav-cluster key and the chord letter, which is worth doing if your button box or a wheel plugin already sits on one of them.
 
@@ -77,8 +76,8 @@ Every one of these keys is remappable through `[Hotkeys]` in `HeadTracking.ini`,
 |---|---|---|
 | `[Network] UdpPort` | `4242` | OpenTrack standard. Must be `1024`-`65535` |
 | `[General] EnableOnStartup` | `1` | |
-| `[Hotkeys] RecenterKey / ToggleKey / CycleModeKey` | `0x24` / `0x23` / `0x21` | The nav-cluster keys, as [Windows virtual-key codes](https://learn.microsoft.com/windows/win32/inputdev/virtual-key-codes) in hex |
-| `[Hotkeys] ChordRecenterKey / ChordToggleKey / ChordCycleModeKey` | `0x54` / `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same three actions |
+| `[Hotkeys] ToggleKey / CycleModeKey` | `0x23` / `0x21` | The nav-cluster keys, as [Windows virtual-key codes](https://learn.microsoft.com/windows/win32/inputdev/virtual-key-codes) in hex |
+| `[Hotkeys] ChordToggleKey / ChordCycleModeKey` | `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same two actions |
 | `[Rotation] Yaw/Pitch/RollSensitivity` | `1.0` | |
 | `[Rotation] InvertYaw/Pitch/Roll` | `0` | Set the one that runs backwards for your tracker |
 | `[Rotation] LocalSmoothing` | `0.0` | `0.0`-`1.0`, used when the tracker runs on this PC. Covers rotation and position |
@@ -93,7 +92,7 @@ Every one of these keys is remappable through `[Hotkeys]` in `HeadTracking.ini`,
 
 Travel limits accept `0`-`10` m and sensitivities `-100`-`100`, far past anything usable; a value outside a setting's range is replaced and the substitution is written to the log, as is a value the mod could not read as a number at all.
 
-Hotkeys are codes, not key names: `RecenterKey=Insert` is refused, `RecenterKey=0x2D` is the same key. They are read as hex, so a bare `24` is `0x24`. Common ones are `Home` `0x24`, `End` `0x23`, `Insert` `0x2D`, `Delete` `0x2E`, `Page Up` `0x21`, `Page Down` `0x22`, `F1`-`F12` `0x70`-`0x7B`, `A`-`Z` `0x41`-`0x5A`, numpad `0`-`9` `0x60`-`0x69`. `Ctrl`, `Shift` and `Alt` cannot be bound - they are what the chord itself is made of. A code the mod refuses leaves that action on its previous key and says so in the log; the log also names every key it ended up bound to, so check there first if a remap did not take.
+Hotkeys are codes, not key names: `ToggleKey=Insert` is refused, `ToggleKey=0x2D` is the same key. They are read as hex, so a bare `24` is `0x24`. Common ones are `Home` `0x24`, `End` `0x23`, `Insert` `0x2D`, `Delete` `0x2E`, `Page Up` `0x21`, `Page Down` `0x22`, `F1`-`F12` `0x70`-`0x7B`, `A`-`Z` `0x41`-`0x5A`, numpad `0`-`9` `0x60`-`0x69`. `Ctrl`, `Shift` and `Alt` cannot be bound - they are what the chord itself is made of. A code the mod refuses leaves that action on its previous key and says so in the log; the log also names every key it ended up bound to, so check there first if a remap did not take.
 
 ## Troubleshooting
 
@@ -109,7 +108,7 @@ Hotkeys are codes, not key names: `RecenterKey=Insert` is refused, `RecenterKey=
 
 **I launched this with another game still running, and that one had the tracker port.** Close the other game and carry on driving; there is no need to restart Assetto Corsa Rally. The mod retries the port every half second for as long as it is running, so tracking comes up about a second after the port frees. The log shows both halves: `Failed to bind UDP port 4242 ... retrying every 500ms`, then `Bound UDP port 4242 after Ns of waiting - tracking is live`.
 
-**The view drifts away from centre.** Press `Home` (or `Ctrl+Shift+T`) while sitting how you drive.
+**The view drifts away from centre.** Centre in your tracker app while sitting how you drive: opentrack's Center bind, the CENTER button in Headcam, SteamVR's reset. The mod keeps no centre of its own and applies the pose the tracker sends.
 
 **My head goes into the seat, or out through the windscreen.** The positional limits decide how far the camera may travel from where the game put it, and they ship cabin-sized for exactly this reason: `LimitZBack` is `0` so you cannot reverse into the headrest, and `LimitZ` is `0.20` m so leaning in stops short of the glass. Raise them if you want more room and can live with the intersections.
 

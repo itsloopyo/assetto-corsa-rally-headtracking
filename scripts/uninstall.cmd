@@ -25,7 +25,7 @@
 :: --- CONFIG BLOCK ---
 set "GAME_ID=assetto-corsa-rally"
 set "MOD_DISPLAY_NAME=Assetto Corsa Rally Head Tracking"
-set "MOD_DLLS=AssettoCorsaRallyHeadTracking.asi"
+set "MOD_DLLS=AssettoCorsaRallyHeadTracking.asi AssettoCorsaRallyHeadTracking.log AssettoCorsaRallyHeadTracking.prev.log"
 set "MOD_INTERNAL_NAME=AssettoCorsaRallyHeadTracking"
 set "STATE_FILE=.headtracking-state.json"
 set "FRAMEWORK_TYPE=ASILoader"

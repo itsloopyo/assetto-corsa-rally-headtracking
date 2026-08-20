@@ -25,8 +25,6 @@ namespace acr_ht {
 namespace {
 
 using Session = cameraunlock::HeadTrackingSession<cameraunlock::UdpReceiver>;
-static_assert(Session::kHasRemoteRecenter,
-              "UdpReceiver must forward TryConsumeRecenterRequest for tracker-app recentering");
 // Without IsRemoteConnection() on the receiver the session silently falls back
 // to LocalSmoothing forever, with nothing at the call site to show it.
 static_assert(Session::kHasRemoteConnection,
@@ -110,11 +108,6 @@ void LogConnectionLocality() {
                   g_config.local_smoothing, g_config.remote_smoothing, isRemote));
 }
 
-void Recenter() {
-    g_session.Recenter();
-    Log::Line("[input] recenter");
-}
-
 void ToggleTracking() {
     const bool on = !g_trackingEnabled.load();
     g_trackingEnabled.store(on);
@@ -143,8 +136,8 @@ struct HotkeyBinding {
 
 // GetKeyNameText wants the scan code in bits 16-23 and the extended-key flag in
 // bit 24. The nav cluster, the arrows and a few others are extended keys, and
-// without that bit they name their numpad twins - a recenter left on Home would
-// report itself in the log as "Num 7", which is the one thing this line exists
+// without that bit they name their numpad twins - a toggle left on End would
+// report itself in the log as "Num 1", which is the one thing this line exists
 // to get right once the key is the user's choice.
 bool IsExtendedKey(int vk) {
     switch (vk) {
@@ -177,7 +170,6 @@ void RegisterHotkeys(const Config& config) {
     using namespace cameraunlock::input;
 
     const HotkeyBinding bindings[] = {
-        { config.recenter_key,   config.chord_recenter_key,   Recenter },
         { config.toggle_key,     config.chord_toggle_key,     ToggleTracking },
         { config.cycle_mode_key, config.chord_cycle_mode_key, CycleTrackingMode },
     };
@@ -325,10 +317,8 @@ void Bootstrap() {
 
     RegisterHotkeys(g_config);
     g_active.store(true);
-    Log::Line("[boot] ready. %s/Ctrl+Shift+%s recenter, %s/Ctrl+Shift+%s toggle tracking, "
+    Log::Line("[boot] ready. %s/Ctrl+Shift+%s toggle tracking, "
               "%s/Ctrl+Shift+%s cycle tracking mode.",
-              HotkeyName(g_config.recenter_key).c_str(),
-              HotkeyName(g_config.chord_recenter_key).c_str(),
               HotkeyName(g_config.toggle_key).c_str(),
               HotkeyName(g_config.chord_toggle_key).c_str(),
               HotkeyName(g_config.cycle_mode_key).c_str(),
@@ -347,8 +337,11 @@ bool ComposeTrackedCamera(const CameraPose& clean, float deltaTime, CameraPose& 
     // pipeline twice, which the smoothing absorbs but the interpolator does
     // not - it estimates the sample interval against wall time and would
     // extrapolate twice as far ahead as it should.
-    g_session.Update(deltaTime);
-    LogConnectionLocality();
+    // Gated on fresh data: the tri-state would otherwise announce a local
+    // tracker on the first camera frame, before any packet was classified.
+    if (g_session.Update(deltaTime)) {
+        LogConnectionLocality();
+    }
 
     HeadPose pose;
     const bool haveRotation = g_session.GetRotation(pose.yaw, pose.pitch, pose.roll);

@@ -22,6 +22,10 @@
 - Removed the hidden 0.15 smoothing floor. It silently overrode whatever the
   user set, so a tracker on the same machine now gets zero-latency tracking by
   default.
+- The tracker owns the centre. The recenter hotkeys (`Home` / `Ctrl+Shift+T`)
+  and their `RecenterKey` / `ChordRecenterKey` settings are gone, along with the
+  mod-side centre capture; the tracker pose is applied as absolute. Centre the
+  view in your tracker app instead.
 
 ## [1.0.2] - 2026-08-15
 

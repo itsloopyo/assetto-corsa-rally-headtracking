@@ -104,7 +104,7 @@ There is no minimum game patch. The mod resolves the camera through Unreal's own
 
 If a phone app over WiFi is jittery, route it through OpenTrack for smoothing: send from the phone to OpenTrack on a different port (`5252`, say, opened in your firewall), then have OpenTrack output to `127.0.0.1:4242`. Raising `[Rotation] RemoteSmoothing` in the INI works too - that is the value a phone on the network gets.
 
-The mod recenters itself once, a moment after it first sees tracker data. Sit the way you drive when you start tracking, and press `Home` any time you want to reset the centre.
+The mod never picks a centre on its own. It uses whatever your tracker sends, so centre it in your tracker app once you are sitting how you drive.
 
 ### Configuration file
 
@@ -114,8 +114,8 @@ The mod recenters itself once, a moment after it first sees tracker data. Sit th
 |---|---|---|
 | `[Network] UdpPort` | `4242` | OpenTrack standard. Must be `1024`-`65535` |
 | `[General] EnableOnStartup` | `1` | |
-| `[Hotkeys] RecenterKey` / `ToggleKey` / `CycleModeKey` | `0x24` / `0x23` / `0x21` | The nav-cluster keys, as Windows virtual key codes in hex |
-| `[Hotkeys] ChordRecenterKey` / `ChordToggleKey` / `ChordCycleModeKey` | `0x54` / `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same three actions |
+| `[Hotkeys] ToggleKey` / `CycleModeKey` | `0x23` / `0x21` | The nav-cluster keys, as Windows virtual key codes in hex |
+| `[Hotkeys] ChordToggleKey` / `ChordCycleModeKey` | `0x59` / `0x47` | The letter in the `Ctrl+Shift+` chord for the same two actions |
 | `[Rotation] YawSensitivity` / `PitchSensitivity` / `RollSensitivity` | `1.0` | |
 | `[Rotation] InvertYaw` / `InvertPitch` / `InvertRoll` | `0` | Set whichever axis runs backwards for your tracker |
 | `[Rotation] LocalSmoothing` | `0.0` | `0.0` to `1.0`, used when the tracker runs on this PC. Covers rotation and position, and nothing floors it |
@@ -136,7 +136,6 @@ Two equivalent binding sets. Use whichever your keyboard has.
 
 | Action | Nav-cluster | Chord |
 |---|---|---|
-| Recenter | `Home` | `Ctrl+Shift+T` |
 | Toggle tracking | `End` | `Ctrl+Shift+Y` |
 | Cycle tracking mode | `Page Up` | `Ctrl+Shift+G` |
 
@@ -147,9 +146,9 @@ Two equivalent binding sets. Use whichever your keyboard has.
 3. Rotation off, position only
 4. Back to normal
 
-The chord letters T/Y/G sit in a block in the middle of the keyboard, easy to find by touch. `Ctrl+Shift+<letter>` is avoided by games, so the chords work whether or not your keyboard has a nav cluster.
+The chord letters Y/G sit in the middle of the keyboard, easy to find by touch. `Ctrl+Shift+<letter>` is avoided by games, so the chords work whether or not your keyboard has a nav cluster.
 
-Both halves of all three actions are remappable through `[Hotkeys]` in `HeadTracking.ini`, which is worth doing if a button box or a wheel plugin already sits on one of them. They are Windows virtual key codes in hex, not key names: `RecenterKey=Insert` is refused, `RecenterKey=0x2D` is the same key, and a bare `24` is read as `0x24`. `Ctrl`, `Shift` and `Alt` cannot be bound, being what the chord is made of. A code the mod refuses leaves that action on its previous key and says so in the log, which also names every key it ended up bound to.
+Both halves of both actions are remappable through `[Hotkeys]` in `HeadTracking.ini`, which is worth doing if a button box or a wheel plugin already sits on one of them. They are Windows virtual key codes in hex, not key names: `ToggleKey=Insert` is refused, `ToggleKey=0x2D` is the same key, and a bare `24` is read as `0x24`. `Ctrl`, `Shift` and `Alt` cannot be bound, being what the chord is made of. A code the mod refuses leaves that action on its previous key and says so in the log, which also names every key it ended up bound to.
 
 ## Troubleshooting
 
@@ -167,7 +166,7 @@ The mod waits for the engine to build a world before hooking anything, and stays
 **Tracking does not respond even though the tracker is running.**
 - Confirm your tracker's output is UDP to `127.0.0.1` port `4242` (or your PC's local IP on `4242` from a phone).
 - Press `End` (or `Ctrl+Shift+Y`) to make sure tracking is toggled on.
-- Press `Home` (or `Ctrl+Shift+T`) to recenter.
+- Centre the view in your tracker app. The mod applies the pose it is sent as absolute and keeps no centre of its own.
 - Check that your firewall is not blocking UDP port `4242`.
 - Two tracker apps sending to `4242` at once makes the mod ignore the second one. The log says so explicitly. Close whichever one you are not using.
 - Read `acr\Binaries\Win64\AssettoCorsaRallyHeadTracking.log`. It records every step: whether the loader engaged, whether Unreal's object table was found, whether the camera was hooked, and what the first frames looked like.
