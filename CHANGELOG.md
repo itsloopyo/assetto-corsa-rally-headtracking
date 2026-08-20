@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2026-08-20
+
+### Added
+
+- drop the recenter hotkey and let the tracker own the centre
+
+### Fixed
+
+- migrate PositionSettings to the Symmetric factory
+
 ## [1.0.3] - 2026-08-17
 
 ### Added
