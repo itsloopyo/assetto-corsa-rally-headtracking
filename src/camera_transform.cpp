@@ -33,7 +33,7 @@ CameraPose ApplyHeadPose(const CameraPose& clean, const HeadPose& pose) {
     // quaternion, so nothing normalises the result. An FRotator pitched past 90
     // is the same orientation as one yawed and rolled by 180, and the horizon
     // inverts. The game's own camera already pitches 30-40 degrees over a
-    // crest, so a sensitivity above 1 can reach it.
+    // crest, so a real head pitch on top of it can reach it.
     //
     // The limit never pulls the camera back from where the engine already had
     // it: a clean pitch beyond the limit stays where it is, so a centred head
@@ -57,14 +57,9 @@ CameraPose ApplyHeadPose(const CameraPose& clean, const HeadPose& pose) {
     const FVector up      = QuatRotateVec(baseQ, FVector{0.0, 0.0, 1.0});
 
     // Two axes run opposite between the pipeline and UE, and both are flipped
-    // here, at the one point the two conventions meet. Doing it here rather
-    // than by shipping InvertX/InvertZ pre-set is what keeps those settings
-    // meaning "my tracker's axis runs backwards" - a user who does need them
-    // gets a working knob instead of one that starts half-used. For z it also
-    // matters functionally: inversion is applied before the clamp, and that
-    // clamp is asymmetric, so pre-setting InvertZ would move the forward
-    // travel allowance onto the lean-back and leave leaning in with the
-    // backward one - which this mod ships as zero.
+    // here, at the one point the two conventions meet. For z this has to come
+    // after the position processor's asymmetric clamp: flipping earlier would
+    // move the forward travel allowance onto the lean-back.
     const double surge = -static_cast<double>(pose.lean_z) * kMetresToUnreal;
     const double sway  = -static_cast<double>(pose.lean_x) * kMetresToUnreal;
     const double heave =  static_cast<double>(pose.lean_y) * kMetresToUnreal;

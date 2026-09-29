@@ -69,7 +69,11 @@ void RememberVerdict(std::uintptr_t uclass, bool verdict) {
     g_verdictNext = (g_verdictNext + 1) % kVerdictCacheSize;
 }
 
-bool g_haveTarget = false;
+// The manager whose missing view target was last reported. Keyed on the
+// manager rather than a single flag because a second camera manager with no
+// view target, updating alongside the driving one, would flip a shared flag
+// every frame and put a flushed log line on the render path each time.
+std::uintptr_t g_reportedNoTarget = 0;
 
 // Backstop under the cache above: a session that somehow does cycle through
 // more classes than it holds re-derives - and would re-announce - an evicted
@@ -126,13 +130,13 @@ bool IsDrivingViewTarget(std::uintptr_t cameraManager, const ViewTargetOffsets& 
     // No view target at all is a load screen or a torn-down world, not
     // gameplay.
     if (!target) {
-        if (g_haveTarget) {
-            g_haveTarget = false;
+        if (g_reportedNoTarget != cameraManager) {
+            g_reportedNoTarget = cameraManager;
             Log::Line("[state] no view target - head tracking held");
         }
         return false;
     }
-    g_haveTarget = true;
+    if (g_reportedNoTarget == cameraManager) g_reportedNoTarget = 0;
 
     // The class is re-read every call rather than trusted from a cached
     // instance pointer. That one guarded read is what makes a recycled actor

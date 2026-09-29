@@ -154,6 +154,8 @@ void DetourPre(void* self, CleanPoseCache::Slot* slot, unsigned long long manage
 void DetourPost(void* self, float deltaTime, CleanPoseCache::Slot* slot,
                 unsigned long long manager, bool trace, long long callIndex,
                 const CameraPose& onEntry, bool haveOnEntry) {
+    ApplyRequestedTrackingMode();
+
     // Only a null camera manager gets no slot, and the engine does not call a
     // member function on one. Guarded rather than assumed because the cost is a
     // branch and the alternative is a null dereference on the render path.

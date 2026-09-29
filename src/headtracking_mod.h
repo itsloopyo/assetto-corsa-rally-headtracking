@@ -11,6 +11,11 @@ void Shutdown();
 // patching, because the discovery it waits on can outlast the mod itself.
 bool ShuttingDown();
 
+// Applies a tracking mode the cycle hotkey has requested. Called from the camera
+// detour on every camera update, driving or not, since that is the thread that
+// owns the session's pipeline state.
+void ApplyRequestedTrackingMode();
+
 // Advances the tracking pipeline by `deltaTime` and composes the result onto
 // `clean`. Returns false - leaving `out` untouched - whenever the camera should
 // stay exactly as the engine computed it: no tracker data, tracking toggled

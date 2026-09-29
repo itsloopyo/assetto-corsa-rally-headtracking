@@ -8,6 +8,7 @@
 #include "logging.h"
 #include "ue/ue_layout.h"
 
+#include <cameraunlock/memory/safe_memory.h>
 #include <cameraunlock/unreal/ue_runtime.h>
 
 namespace acr_ht::ue {
@@ -91,9 +92,18 @@ std::size_t DecodeNameEntry(std::uintptr_t entry, std::string& out) {
     out.clear();
     out.reserve(static_cast<std::size_t>(len));
     for (int i = 0; i < len; ++i) {
+        // A narrow name is read a byte at a time. A 16-bit read of its last
+        // character touches the byte after the name, which faults when the name
+        // ends on the last byte of a committed page and rejects the genuine pool.
         std::uint16_t unit = 0;
-        if (!cu::SafeReadU16(entry + 2 + static_cast<std::size_t>(i) * (isWide ? 2 : 1), unit))
-            return 0;
+        if (isWide) {
+            if (!cu::SafeReadU16(entry + 2 + static_cast<std::size_t>(i) * 2, unit)) return 0;
+        } else {
+            std::uint8_t byte = 0;
+            if (!cameraunlock::memory::SafeReadU8(entry + 2 + static_cast<std::size_t>(i), byte))
+                return 0;
+            unit = byte;
+        }
         const char c = static_cast<char>(unit & 0xff);
         // Names are identifiers and paths. A control byte here means the header
         // was not a header, so reject rather than return a string of noise that

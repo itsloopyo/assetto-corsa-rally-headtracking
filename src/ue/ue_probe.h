@@ -12,7 +12,8 @@ namespace acr_ht::ue {
 // The live camera manager for the local player, or 0 if the engine has not
 // built a world yet. Class name is whatever the game subclassed
 // APlayerCameraManager as, so this matches on the suffix rather than on an
-// exact name.
+// exact name. Only a manager that a live player controller holds, at one
+// unambiguous offset, is returned (see FindCameraManagerFieldOffset).
 std::uintptr_t FindPlayerCameraManager();
 
 // Finds which live player controller owns `manager` and at what byte offset it

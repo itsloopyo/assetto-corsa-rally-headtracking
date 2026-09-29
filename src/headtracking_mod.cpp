@@ -81,10 +81,23 @@ void ToggleTracking() {
     Log::Line("[input] tracking %s", on ? "enabled" : "disabled");
 }
 
-// Applies the next mode, then saves it, so the choice survives a restart.
+// The mode the cycle hotkey last chose. SetMode resets the position
+// interpolator and processor, which the camera thread is reading mid-Update, so
+// the hotkey thread only records the choice here and the camera thread applies
+// it at a safe point (ApplyRequestedTrackingMode).
+std::atomic<cameraunlock::TrackingMode> g_requestedMode{cameraunlock::TrackingMode::RotationAndPosition};
+
+// Computed from the mode the camera thread last applied, so two presses before
+// one camera update are one step, not two.
+cameraunlock::TrackingMode NextTrackingMode(cameraunlock::TrackingMode mode) {
+    return static_cast<cameraunlock::TrackingMode>((static_cast<int>(mode) + 1) % 3);
+}
+
+// Requests the next mode, then saves it, so the choice survives a restart.
 // Runs on the hotkey poller's thread.
 void CycleTrackingMode() {
-    const cameraunlock::TrackingMode mode = g_session.CycleMode();
+    const cameraunlock::TrackingMode mode = NextTrackingMode(g_session.GetMode());
+    g_requestedMode.store(mode);
     const char* name = "";
     switch (mode) {
         case cameraunlock::TrackingMode::RotationAndPosition: name = "rotation and position"; break;
@@ -140,6 +153,7 @@ void LoadAndApplyConfig(const std::wstring& exeDir) {
               g_config.rotation_enabled ? 1 : 0, g_config.position_enabled ? 1 : 0);
 
     ApplyConfigToPipeline(g_config, g_session);
+    g_requestedMode.store(g_session.GetMode());
     g_trackingEnabled.store(g_config.enable_on_startup);
 }
 
@@ -161,10 +175,7 @@ bool BringUpCameraHook(std::uintptr_t moduleBase, std::size_t moduleSize) {
     // manager is only owned by a controller once a level is up - which is also
     // the earliest point the UpdateCamera call site can be identified.
     Log::Line("[ue] waiting for a live player camera manager...");
-    const std::uintptr_t manager = WaitFor([] {
-        const std::uintptr_t candidate = ue::FindPlayerCameraManager();
-        return (candidate && ue::FindCameraManagerFieldOffset(candidate)) ? candidate : 0;
-    });
+    const std::uintptr_t manager = WaitFor([] { return ue::FindPlayerCameraManager(); });
     if (!manager) {
         Log::Line("[ue] no camera manager appeared - mod is dormant, game runs vanilla.");
         return false;
@@ -238,8 +249,14 @@ void Bootstrap() {
 
 }  // namespace
 
+void ApplyRequestedTrackingMode() {
+    if (!g_active.load(std::memory_order_acquire)) return;
+    const cameraunlock::TrackingMode requested = g_requestedMode.load();
+    if (requested != g_session.GetMode()) g_session.SetMode(requested);
+}
+
 bool ComposeTrackedCamera(const CameraPose& clean, float deltaTime, CameraPose& out) {
-    if (!g_active.load(std::memory_order_relaxed)) return false;
+    if (!g_active.load(std::memory_order_acquire)) return false;
 
     // The caller reaches this only for a camera manager that is following the
     // car, so in practice it runs once per frame: a replay or photo camera

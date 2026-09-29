@@ -53,6 +53,12 @@ std::uintptr_t FindPlayerCameraManager() {
         if (cls == "Class") return false;
         if (!cu::ContainsCI(cls, "PlayerCameraManager")) return false;
         if (cu::ContainsCI(cu::ObjectName(obj), "Default__")) return false;
+        // The table can hold more than one: a manager from a world being torn
+        // down stays in it until garbage collection. Taking the first match
+        // regardless would keep re-finding an orphan that no controller owns,
+        // and the discovery poll would wait out its whole budget on it while
+        // the live one sat further down the table.
+        if (FindCameraManagerFieldOffset(obj) == 0) return false;
         found = obj;
         return true;
     });
