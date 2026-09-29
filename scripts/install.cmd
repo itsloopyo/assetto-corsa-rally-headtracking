@@ -14,7 +14,7 @@ set "GAME_ID=assetto-corsa-rally"
 set "MOD_DISPLAY_NAME=Assetto Corsa Rally Head Tracking"
 set "MOD_DLLS=AssettoCorsaRallyHeadTracking.asi"
 set "MOD_INTERNAL_NAME=AssettoCorsaRallyHeadTracking"
-set "MOD_VERSION=1.2.0"
+set "MOD_VERSION=1.2.1"
 set "STATE_FILE=.headtracking-state.json"
 set "FRAMEWORK_TYPE=ASILoader"
 :: Filename the ASI loader DLL is renamed to: the import the game exe already
